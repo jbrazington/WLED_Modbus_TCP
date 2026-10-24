@@ -1,0 +1,5 @@
+{
+  "name": "Modbus_TCP",
+  "build": { "libArchive": false },
+  "dependencies": {}
+}

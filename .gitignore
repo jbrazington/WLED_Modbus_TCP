@@ -1,0 +1,5 @@
+test/modbus_test
+test/ArduinoJson-v6.h
+WLED/
+__pycache__/
+.venv/
