@@ -30,7 +30,7 @@ jobs:
         run: git clone --depth 1 -b "$WLED_TAG" https://github.com/wled/WLED.git WLED
       - name: Add usermod
         run: |
-          cp -r usermods/Modbus_TCP WLED/usermods/
+          cp -r usermods/Modbus_TCP usermods/EIP_PCCC WLED/usermods/
           cp platformio_override.ini WLED/
       - uses: actions/cache@v4
         with:
@@ -41,8 +41,14 @@ jobs:
         run: |
           pip install -r requirements.txt
           npm ci
-          pio run -e esp32_eth_modbus -e esp32dev_modbus
+          # envs that extend the same WLED env share a release name, so name the files here
+          mkdir -p ../out
+          for b in esp32_eth_modbus:ESP32_Ethernet_ModbusTCP esp32dev_modbus:ESP32_ModbusTCP \
+                   esp32_eth_pccc:ESP32_Ethernet_EIP_PCCC esp32dev_pccc:ESP32_EIP_PCCC; do
+            pio run -e "${b%%:*}"
+            cp ".pio/build/${b%%:*}/firmware.bin" "../out/WLED_${WLED_TAG#v}_${b#*:}.bin"
+          done
       - uses: actions/upload-artifact@v4
         with:
           name: firmware
-          path: WLED/build_output/release/*.bin
+          path: out/*.bin

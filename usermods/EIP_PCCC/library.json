@@ -1,0 +1,5 @@
+{
+  "name": "EIP_PCCC",
+  "build": { "libArchive": false },
+  "dependencies": {}
+}

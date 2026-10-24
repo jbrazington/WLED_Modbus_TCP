@@ -1,4 +1,5 @@
 test/modbus_test
+test/pccc_test
 test/ArduinoJson-v6.h
 WLED/
 __pycache__/
