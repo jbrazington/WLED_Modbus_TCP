@@ -9,6 +9,7 @@
 #define ARDUINOJSON_ENABLE_PROGMEM 0
 #include "ArduinoJson-v6.h"
 using std::min;
+using std::max;
 typedef uint8_t byte;
 #define PROGMEM
 #define F(x) x
@@ -53,7 +54,8 @@ inline void unloadPlaylist(){ currentPlaylist=-1; }
 inline void stateUpdated(byte){ stateUpdates++; if(bri) briLast=bri; stateChanged=false; }
 namespace BusManager { inline uint16_t currentMilliamps(){return 300;} inline uint16_t ablMilliampsMax(){return 2000;} }
 struct { uint32_t getFreeHeap(){return 100*1024;} } ESP;
-struct { int RSSI(){return -60;} } WiFi;
+struct { int RSSI(){return -60;} void macAddress(uint8_t*m){ const uint8_t d[6]={0x24,0x0A,0xC4,0x12,0x34,0x56}; memcpy(m,d,6); } } WiFi;
+extern char serverDescription[33];
 #define WLED_CONNECTED true
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -73,5 +75,17 @@ struct WiFiServer { int fd=-1; uint16_t p; WiFiServer(uint16_t port):p(port){}
   void begin(){ fd=socket(AF_INET,SOCK_STREAM,0); int one=1; setsockopt(fd,SOL_SOCKET,SO_REUSEADDR,&one,4); sockaddr_in a{}; a.sin_family=AF_INET; a.sin_port=htons(p); bind(fd,(sockaddr*)&a,sizeof a); listen(fd,8); fcntl(fd,F_SETFL,O_NONBLOCK); }
   void end(){ close(fd); } void setNoDelay(bool){}
   WiFiClient available(){ int c=accept(fd,nullptr,nullptr); return WiFiClient(c); } };
+struct IPAddress { uint8_t b[4]; IPAddress(uint8_t a=127,uint8_t c=0,uint8_t d=0,uint8_t e=1):b{a,c,d,e}{} uint8_t operator[](int i) const { return b[i]; } };
+struct { IPAddress localIP(){ return IPAddress(); } } Network;
+struct WiFiUDP { int fd=-1; sockaddr_in from{}, to{}; uint8_t in[600], out[600]; int ilen=0, ipos=0, olen=0;
+  bool begin(uint16_t p){ fd=socket(AF_INET,SOCK_DGRAM,0); int one=1; setsockopt(fd,SOL_SOCKET,SO_REUSEADDR,&one,4); sockaddr_in a{}; a.sin_family=AF_INET; a.sin_port=htons(p); fcntl(fd,F_SETFL,O_NONBLOCK); return bind(fd,(sockaddr*)&a,sizeof a)==0; }
+  void stop(){ if(fd>=0) close(fd); fd=-1; }
+  int parsePacket(){ socklen_t l=sizeof from; ilen=recvfrom(fd,in,sizeof in,0,(sockaddr*)&from,&l); ipos=0; return ilen>0?ilen:0; }
+  int read(uint8_t*b,int n){ n=std::min(n,ilen-ipos); memcpy(b,in+ipos,n); ipos+=n; return n; }
+  IPAddress remoteIP(){ uint8_t*a=(uint8_t*)&from.sin_addr; return IPAddress(a[0],a[1],a[2],a[3]); }
+  uint16_t remotePort(){ return ntohs(from.sin_port); }
+  int beginPacket(IPAddress ip, uint16_t port){ to=sockaddr_in{}; to.sin_family=AF_INET; to.sin_port=htons(port); memcpy(&to.sin_addr,ip.b,4); olen=0; return 1; }
+  size_t write(const uint8_t*b,size_t n){ memcpy(out+olen,b,n); olen+=n; return n; }
+  int endPacket(){ return sendto(fd,out,olen,0,(sockaddr*)&to,sizeof to)==olen; } };
 class Usermod { public: virtual ~Usermod(){} virtual void setup()=0; virtual void loop()=0; virtual void connected(){} virtual void addToJsonInfo(JsonObject&){} virtual void addToConfig(JsonObject&){} virtual bool readFromConfig(JsonObject&){return true;} virtual void appendConfigData(){} };
 #define REGISTER_USERMOD(x)

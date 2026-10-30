@@ -72,3 +72,18 @@ python3 tools/modbus_test.py <controller-ip>
 ```
 
 The register map is in `usermods/Modbus_TCP/readme.md`.
+
+## EtherNet/IP PCCC (Allen-Bradley PLCs)
+
+For a ControlLogix, CompactLogix, MicroLogix or SLC PLC, use the EtherNet/IP
+PCCC build instead (`WLED_16.0.1_ESP32_Ethernet_EIP_PCCC.bin`, from the
+`firmware` artifact of the GitHub Actions build, or `pio run -e esp32_eth_pccc`).
+It flashes the same way and keeps the release name `ESP32_Ethernet`. Ethernet
+setup is identical: select **WT32-ETH01**, and give the controller a static IP
+so the MSG path stays valid.
+
+Then Config → **Usermods → EIP_PCCC**: enabled (default on). The Info page
+shows TCP clients and CIP connections. Check it from a PC with
+`python3 tools/pccc_test.py <controller-ip>`, then point a PLC MSG at it, for
+example a *PLC5 Typed Write* of an INT[2] tag to `N7:0` (power, brightness).
+The data-table map and MSG examples are in `usermods/EIP_PCCC/readme.md`.
